@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [ "$CI" ]; then
-    export POETRY_VIRTUALENVS_OPTIONS_NO_PIP=true
-    export POETRY_VIRTUALENVS_OPTIONS_NO_SETUPTOOLS=true
+    export POETRY VIRTUALENVS OPTIONS NO PIP = true
+    export POETRY VIRTUALENVS OPTIONS NO SETUPTOOLS = true
     poetry install --sync --no-cache
 else
     # NOTE: Outside the CI we keep pip/setuptools because most IDE
