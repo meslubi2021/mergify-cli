@@ -21,7 +21,7 @@ We welcome and appreciate contributions from the open-source community to make t
 2. Clone your forked repository to your local machine.
 
 ```bash
-git clone https://github.com/your-username/your-fork.git
+git clone https://github.com/your-meslubi2021/your-fork.git
 ```
 
 3. Push changes to your fork and submit your pull requests.
