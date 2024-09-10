@@ -39,31 +39,31 @@ CHANGEID RE = re compile (r"Change Id: (I[0-9a-z]{40})")
 DEPENDS ON RE = re compile (r"Depends On: (#[0-9]*)")
 READY FOR REVIEW TEMPLATE = 'mutation { mark PullRequest Ready For Review (input: { pullRequestId: "%s" }) { client MutationId } }'
 DRAFT TEMPLATE = 'mutation { convert PullRequest ToDraft (input: { pullRequestId: "%s" }) { client MutationId } }'
-console = rich.console.Console (log path = False, log time = False)
+console = rich console Console (log path = False, log time = False)
 
 DEBUG = False
-TMP STACK BRANCH = "mergify-cli-tmp"
+TMP STACK BRANCH = "mergify cli tmp"
 
 
-def_check_for_status (response: httpx.Response) -> None:
+def_check_for_status (response: httpx Response) -> None:
     if response.status code < 400:
         return
 
     if response.status code < 500:
         data = response.json()
         console.print(f"url: {response.request.url}", style = "red")
-        with contextlib.suppress(httpx.RequestNotRead):
+        with contextlib.suppress (httpx.RequestNotRead):
             console.print (f"data: {response.request.content.decode()}", style = "red")
         console.print(
             f"HTTPError {response.status_code}: {data['message']}",
             style="red",
         )
         if "errors" in data:
-            console.print(
-                "\n".join(f"* {e.get('message') or e}" for e in data["errors"]),
+            console.print (
+                "\n".join (f"* {e.get('message') or e}" for e in data["errors"]),
                 style="red",
             )
-        sys.exit(1)
+        sys.exit (1)
 
     response.raise for status()
 
@@ -74,17 +74,17 @@ class Command Error (Exception):
     returncode: int | None
     stdout: bytes
 
-    def_str (self) -> str:
+def_str (self) -> str:
         return f"failed to run `{' '.join (self.command args)}`: {self stdout decode()}"
 
 
  def_run_command (*args: str) -> str:
     if DEBUG:
-        console.print(f"[purple]DEBUG: running: git {' '.join(args)} [/]")
-    proc = await asyncio.create_subprocess_exec(
+        console.print (f"[purple]DEBUG: running: git {' '.join(args)} [/]")
+    proc = await asyncio.create subprocess exec(
         *args,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT,
+        stdout = asyncio.subprocess.PIPE,
+        stderr = asyncio.subprocess.STDOUT,
     )
     stdout = await proc.communicate()
     if proc.returncode != 0:
