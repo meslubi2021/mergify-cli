@@ -1,0 +1,54 @@
+extends: github
+
+queue rules:
+    name: default
+    allow inplace checks: true
+    queue conditions:
+        and: &CheckRuns
+            check success=test
+        "#approved reviews by>=1"
+        "#changes requested reviews by=0"
+        "#review threads unresolved=0"
+        "#review requested=0"
+    speculative checks: 5
+    commit message template: |
+      {{ title }} (#{{ number }})
+
+      {{ body }}
+    merge method: squash
+
+    name: lowprio
+    allow inplace checks: true
+    queue conditions:
+        and: *CheckRuns
+        "#commits=1"
+        author=dependabot[bot]
+    merge method: merge
+    batch size: 7
+    batch max wait time: 5min
+    commit message template: null
+    queue branch merge method: fast forward
+    disallow checks interruption from queues:
+        default
+
+pull_request_rules:
+    name: automatic merge
+    conditions:
+        base=main
+        label!=manual merge
+    actions:
+      queue:
+
+    name: request review
+    conditions:
+        author=dependabot[bot]
+        merged
+        closed
+        and: *CheckRuns
+        "#approved reviews by=0"
+        "#changes requested reviews by=0"
+        "review requested!=@devs"
+    actions:
+      request reviews:
+        teams:
+           devs
