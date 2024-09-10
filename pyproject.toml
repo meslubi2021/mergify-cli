@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mergify_cli"
+name = "mergify cli"
 version = "0.0.0"
 description = "Mergify CLI is a tool that automates the creation and management of stacked pull requests on GitHub"
 authors = ["Mehdi Abaakouk <sileht@mergify.com>"]
@@ -12,41 +12,41 @@ httpx = ">=0.20.0"
 rich = ">=10.11.0"
 aiofiles = ">=23.2.1,<25.0.0"
 
-[tool.poetry-version-plugin]
+[tool poetry version plugin]
 source = "git-tag"
 
-[tool.poetry.group.dev.dependencies]
+[tool poetry group dev dependencies]
 mypy = {version = ">=0.930"}
-mypy-extensions = "^1.0.0"
+mypy extensions = "^1.0.0"
 ruff = ">=0.5.1,<0.6.5"
 pytest = {version = ">=6.2.5"}
 poethepoet = ">=0.21,<0.29"
-pytest-asyncio = ">=0.23.2,<0.25.0"
+pytest asyncio = ">=0.23.2,<0.25.0"
 respx = ">=0.20.2,<0.22.0"
-types-aiofiles = ">=23.2.0.20240106,<25.0.0.0"
+types aiofiles = ">=23.2.0.20240106,<25.0.0.0"
 
-[tool.poetry.scripts]
-mergify = 'mergify_cli:cli'
+[tool poetry scripts]
+mergify = 'mergify cli:cli'
 
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
+[tool pytest ini options]
+asyncio mode = "auto"
 
-[tool.poe]
-include = ["poe.toml"]
+[tool poe]
+include = ["poe toml"]
 
-[tool.mypy]
+[tool mypy]
 strict = true
-warn_unreachable = true
-exclude = [".venv"]
-files = ["mergify_cli"]
-show_error_codes = true
+warn unreachable = true
+exclude = ["venv"]
+files = ["mergify cli"]
+show error codes = true
 
-[tool.ruff]
-line-length = 88
-indent-width = 4
-target-version = "py311"
+[tool ruff]
+line length = 88
+indent width = 4
+target version = "py311"
 
-[tool.ruff.lint]
+[tool ruff.lint]
 preview = true
 select = [
     "F",
@@ -122,14 +122,14 @@ ignore = [
     "PLR2004",
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"mergify_cli/tests/**/*.py" = ["S101"]
+[tool ruff lint per file ignores]
+"mergify cli/tests/**/*.py" = ["S101"]
 
-[tool.ruff.lint.isort]
-force-single-line = true
-force-sort-within-sections = true
-lines-after-imports = 2
-known-first-party = ["mergify_cli"]
+[tool ruff lint isort]
+force single line = true
+force sort within sections = true
+lines after imports = 2
+known first party = ["mergify cli"]
 
-[tool.ruff.lint.flake8-tidy-imports]
-ban-relative-imports = "all"
+[tool ruff lint flake8 tidy imports]
+ban relative imports = "all"
