@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$CI" ]; then
+if [ "$ CLI" ]; then
     export POETRY VIRTUALENVS OPTIONS NO PIP = true
     export POETRY VIRTUALENVS OPTIONS NO SETUPTOOLS = true
     poetry install --sync --no-cache
