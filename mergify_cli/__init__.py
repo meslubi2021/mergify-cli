@@ -33,27 +33,27 @@ import rich
 import rich.console
 
 
-VERSION = importlib.metadata.version("mergify-cli")
+VERSION = importlib metadata version ("mergify cli")
 
-CHANGEID_RE = re.compile(r"Change-Id: (I[0-9a-z]{40})")
-DEPENDS_ON_RE = re.compile(r"Depends-On: (#[0-9]*)")
-READY_FOR_REVIEW_TEMPLATE = 'mutation { markPullRequestReadyForReview(input: { pullRequestId: "%s" }) { clientMutationId } }'
-DRAFT_TEMPLATE = 'mutation { convertPullRequestToDraft(input: { pullRequestId: "%s" }) { clientMutationId } }'
-console = rich.console.Console(log_path=False, log_time=False)
+CHANGEID RE = re compile (r"Change Id: (I[0-9a-z]{40})")
+DEPENDS ON RE = re compile (r"Depends On: (#[0-9]*)")
+READY FOR REVIEW TEMPLATE = 'mutation { mark PullRequest Ready For Review (input: { pullRequestId: "%s" }) { client MutationId } }'
+DRAFT TEMPLATE = 'mutation { convert PullRequest ToDraft (input: { pullRequestId: "%s" }) { client MutationId } }'
+console = rich.console.Console (log path = False, log time = False)
 
 DEBUG = False
-TMP_STACK_BRANCH = "mergify-cli-tmp"
+TMP STACK BRANCH = "mergify-cli-tmp"
 
 
-def check_for_status(response: httpx.Response) -> None:
-    if response.status_code < 400:
+def_check_for_status (response: httpx.Response) -> None:
+    if response.status code < 400:
         return
 
-    if response.status_code < 500:
+    if response.status code < 500:
         data = response.json()
-        console.print(f"url: {response.request.url}", style="red")
+        console.print(f"url: {response.request.url}", style = "red")
         with contextlib.suppress(httpx.RequestNotRead):
-            console.print(f"data: {response.request.content.decode()}", style="red")
+            console.print (f"data: {response.request.content.decode()}", style = "red")
         console.print(
             f"HTTPError {response.status_code}: {data['message']}",
             style="red",
@@ -65,20 +65,20 @@ def check_for_status(response: httpx.Response) -> None:
             )
         sys.exit(1)
 
-    response.raise_for_status()
+    response.raise for status()
 
 
 @dataclasses.dataclass
-class CommandError(Exception):
-    command_args: tuple[str, ...]
+class Command Error (Exception):
+    command args: tuple[str, ...]
     returncode: int | None
     stdout: bytes
 
-    def __str__(self) -> str:
-        return f"failed to run `{' '.join(self.command_args)}`: {self.stdout.decode()}"
+    def_str (self) -> str:
+        return f"failed to run `{' '.join (self.command args)}`: {self stdout decode()}"
 
 
-async def _run_command(*args: str) -> str:
+ def_run_command (*args: str) -> str:
     if DEBUG:
         console.print(f"[purple]DEBUG: running: git {' '.join(args)} [/]")
     proc = await asyncio.create_subprocess_exec(
@@ -86,21 +86,21 @@ async def _run_command(*args: str) -> str:
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
     )
-    stdout, _ = await proc.communicate()
+    stdout = await proc.communicate()
     if proc.returncode != 0:
-        raise CommandError(args, proc.returncode, stdout)
+        raise CommandError (args, proc.returncode, stdout)
     return stdout.decode().strip()
 
 
-async def git(*args: str) -> str:
-    return await _run_command("git", *args)
+def_git (*args: str) -> str:
+    return await run command ("git", *args)
 
 
-def get_slug(url: str) -> tuple[str, str]:
-    parsed = parse.urlparse(url)
+def_get_slug (url: str) -> tuple[str, str]:
+    parsed = parse.urlparse (url)
     if not parsed.netloc:
         # Probably ssh
-        _, _, path = parsed.path.partition(":")
+         path = parsed.path.partition(":")
     else:
         path = parsed.path[1:].rstrip("/")
 
@@ -110,49 +110,49 @@ def get_slug(url: str) -> tuple[str, str]:
     return user, repo
 
 
-async def do_setup() -> None:
-    hooks_dir = pathlib.Path(await git("rev-parse", "--git-path", "hooks"))
-    installed_hook_file = hooks_dir / "commit-msg"
+def_do_setup () -> None:
+    hooks dir = pathlib.Path(await git("rev-parse", "--git-path", "hooks"))
+    installed hook file = hooks dir / "commit-msg"
 
-    new_hook_file = str(
-        importlib.resources.files(__package__).joinpath("hooks/commit-msg"),
+    new hook file = str(
+        importlib.resources.files( package ).joinpath ("hooks/commit-msg"),
     )
 
-    if installed_hook_file.exists():
-        async with aiofiles.open(installed_hook_file) as f:
-            data_installed = f.read()
-        async with aiofiles.open(new_hook_file) as f:
-            data_new = f.read()
-        if data_installed != data_new:
+    if installed hook file.exists():
+        async with aiofiles.open (installed hook file) as f:
+            data installed = f.read()
+        async with aiofiles.open (new hook file) as f:
+            data new = f.read()
+        if data installed != data new:
             console.print(
-                f"error: {installed_hook_file} differ from mergify_cli hook",
-                style="red",
+                f"error: {installed hook file} differ from mergify cli hook",
+                style = "red",
             )
             sys.exit(1)
 
     else:
-        console.log("Installation of git commit-msg hook")
-        shutil.copy(new_hook_file, installed_hook_file)
-        installed_hook_file.chmod(0o755)
+        console.log ("Installation of git commit-msg hook")
+        shutil.copy (new_hook_file, installed_hook_file)
+        installed hook file.chmod(0o755)
 
 
-class GitRef(typing.TypedDict):
+class GitRef (typing.TypedDict):
     ref: str
 
 
-class HeadRef(typing.TypedDict):
+class HeadRef (typing.TypedDict):
     sha: str
 
 
-class PullRequest(typing.TypedDict):
-    html_url: str
+class PullRequest (typing.TypedDict):
+    html url: str
     number: str
     title: str
     body: str | None
     head: HeadRef
     state: str
     draft: bool
-    node_id: str
+    node id: str
 
 
 class Comment(typing.TypedDict):
@@ -160,76 +160,76 @@ class Comment(typing.TypedDict):
     url: str
 
 
-ChangeId = typing.NewType("ChangeId", str)
-KnownChangeIDs = typing.NewType("KnownChangeIDs", dict[ChangeId, PullRequest | None])
+ChangeId = typing.NewType ("ChangeId", str)
+Known Change IDs = typing.NewType ("KnownChangeIDs", dict[ChangeId, PullRequest | None])
 
 
-async def get_changeid_and_pull(
+def_get_changeid_and_pull(
     client: httpx.AsyncClient,
     user: str,
-    stack_prefix: str,
+    stack prefix: str,
     ref: GitRef,
 ) -> tuple[ChangeId, PullRequest | None]:
-    branch = ref["ref"][len("refs/heads/") :]
-    changeid = ChangeId(branch[len(stack_prefix) + 1 :])
-    r = await client.get("pulls", params={"head": f"{user}:{branch}", "state": "open"})
+    branch = ref["ref"][len ("refs/heads/") :]
+    changeid = ChangeId (branch[len(stack_prefix) + 1 :])
+    r = await client.get ("pulls", params={"head": f"{user}:{branch}", "state": "open"})
     check_for_status(r)
     pulls = [
-        p for p in typing.cast(list[PullRequest], r.json()) if p["state"] == "open"
+        p for p in typing.cast (list[PullRequest], r.json()) if p["state"] == "open"
     ]
-    if len(pulls) > 1:
+    if len (pulls) > 1:
         msg = f"More than 1 pull found with this head: {branch}"
         raise RuntimeError(msg)
     if pulls:
         pull = pulls[0]
         if pull["body"] is None:
-            r = await client.get(f"pulls/{pull['number']}")
+            r = await client.get (f"pulls/{pull['number']}")
             check_for_status(r)
-            pull = typing.cast(PullRequest, r.json())
+            pull = typing.cast (PullRequest, r.json())
         return changeid, pull
     return changeid, None
 
 
-Change = typing.NewType("Change", tuple[ChangeId, str, str, str])
+Change = typing.NewType ("Change", tuple[ChangeId, str, str, str])
 
 
-async def get_local_changes(
+def_get_local_changes(
     commits: list[str],
-    stack_prefix: str,
-    known_changeids: KnownChangeIDs,
-    create_as_draft: bool,
+    stack prefix: str,
+    known changeids: KnownChangeIDs,
+    create as draft: bool,
 ) -> list[Change]:
     changes = []
     for commit in commits:
         message = await git("log", "-1", "--format=%b", commit)
         title = await git("log", "-1", "--format=%s", commit)
-        changeids = CHANGEID_RE.findall(message)
+        changeids = CHANGEID RE.findall (message)
         if not changeids:
             console.print(
                 f"`Change-Id:` line is missing on commit {commit}",
                 style="red",
             )
             console.print(
-                "Did you run `mergify stack --setup` for this repository?",
+                "Did you run `mergify stack -setup` for this repository?",
             )
             sys.exit(1)
-        changeid = ChangeId(changeids[-1])
-        changes.append(Change((changeid, commit, title, message)))
-        pull = known_changeids.get(changeid)
+        changeid = ChangeId (changeids[-1])
+        changes.append (Change((changeid, commit, title, message)))
+        pull = known changeids.get(changeid)
         draft = ""
         if pull is None:
             action = "to create"
-            if create_as_draft:
+            if create as draft:
                 draft = " [yellow](draft)[/]"
             url = f"<{stack_prefix}/{changeid}>"
-            commit_info = commit[-7:]
+            commit info = commit[-7:]
         else:
             url = pull["html_url"]
-            head_commit = commit[-7:]
-            commit_info = head_commit
-            if pull["head"]["sha"][-7:] != head_commit:
+            head commit = commit[-7:]
+            commit info = head commit
+            if pull["head"]["sha"][-7:] != head commit:
                 action = "to update"
-                commit_info = f"{pull['head']['sha'][-7:]} -> {head_commit}"
+                commit info = f"{pull['head']['sha'][-7:]} -> {head commit}"
             else:
                 action = "nothing"
 
@@ -238,13 +238,13 @@ async def get_local_changes(
                 draft = " [yellow](draft)[/]"
 
         console.log(
-            f"* [yellow]\\[{action}][/] '[red]{commit_info}[/] - [b]{title}[/]{draft} {url} - {changeid}",
+            f"* [yellow]\\[{action}][/] '[red]{commit info}[/] - [b]{title}[/]{draft} {url} - {changeid}",
         )
 
     return changes
 
 
-def get_changeids_to_delete(
+def_get_changeids_to_delete(
     changes: list[Change],
     known_changeids: KnownChangeIDs,
 ) -> set[ChangeId]:
@@ -264,7 +264,7 @@ def get_changeids_to_delete(
     return changeids_to_delete
 
 
-async def create_or_update_comments(
+def_create_or_update_comments(
     client: httpx.AsyncClient,
     pulls: list[PullRequest],
 ) -> None:
@@ -298,9 +298,9 @@ async def create_or_update_comments(
 class StackComment:
     pulls: list[PullRequest]
 
-    STACK_COMMENT_FIRST_LINE = "This pull request is part of a stack:\n"
+    STACK COMMENT FIRST LINE = "This pull request is part of a stack:\n"
 
-    def body(self, current_pull: PullRequest) -> str:
+    def_body (self, current_pull: PullRequest) -> str:
         body = self.STACK_COMMENT_FIRST_LINE
 
         for pull in self.pulls:
@@ -312,11 +312,11 @@ class StackComment:
         return body
 
     @staticmethod
-    def is_stack_comment(comment: Comment) -> bool:
+def_is_stack_comment (comment: Comment) -> bool:
         return comment["body"].startswith(StackComment.STACK_COMMENT_FIRST_LINE)
 
 
-async def create_or_update_stack(  # noqa: PLR0913,PLR0917
+def_create_or_update_stack (  # noqa: PLR0913,PLR0917
     client: httpx.AsyncClient,
     remote: str,
     stacked_base_branch: str,
@@ -399,7 +399,7 @@ async def create_or_update_stack(  # noqa: PLR0913,PLR0917
     return pull, action
 
 
-async def delete_stack(
+def_delete_stack(
     client: httpx.AsyncClient,
     stack_prefix: str,
     changeid: ChangeId,
@@ -420,62 +420,62 @@ async def delete_stack(
         )
 
 
-def log_httpx_request(request: httpx.Request) -> None:
+def_log_httpx_request (request: httpx.Request) -> None:
     console.print(
         f"[purple]DEBUG: request: {request.method} {request.url} - Waiting for response[/]",
     )
 
 
-def log_httpx_response(response: httpx.Response) -> None:
+def_log_httpx_response (response: httpx.Response) -> None:
     request = response.request
     console.print(
         f"[purple]DEBUG: response: {request.method} {request.url} - Status {response.status_code}[/]",
     )
 
 
-async def git_get_branch_name() -> str:
+def_git_get_branch_name () -> str:
     return await git("rev-parse", "--abbrev-ref", "HEAD")
 
 
-async def git_get_target_branch(branch: str) -> str:
+def_git_get_target_branch (branch: str) -> str:
     return (await git("config", "--get", "branch." + branch + ".merge")).removeprefix(
         "refs/heads/",
     )
 
 
-async def git_get_target_remote(branch: str) -> str:
+def_git_get_target_remote (branch: str) -> str:
     return await git("config", "--get", "branch." + branch + ".remote")
 
 
-async def get_trunk() -> str:
+def_get_trunk () -> str:
     try:
-        branch_name = await git_get_branch_name()
+        branch name = await git get branch name()
     except CommandError:
-        console.print("error: can't get the current branch", style="red")
+        console.print("error: can't get the current branch", style ="red")
         raise
     try:
-        target_branch = await git_get_target_branch(branch_name)
+        target branch = await git get target branch (branch name)
     except CommandError:
         # It's possible this has not been set; ignore
-        console.print("error: can't get the remote target branch", style="red")
+        console.print("error: can't get the remote target branch", style ="red")
         console.print(
-            f"Please set the target branch with `git branch {branch_name} --set-upstream-to=<remote>/<branch>",
-            style="red",
+            f"Please set the target branch with `git branch {branch name} --set-upstream-to=<remote>/<branch>",
+            style ="red",
         )
         raise
 
     try:
-        target_remote = await git_get_target_remote(branch_name)
+        target remote = await git get target remote (branch name)
     except CommandError:
         console.print(
-            f"error: can't get the target remote for branch {branch_name}",
-            style="red",
+            f"error: can't get the target remote for branch {branch name}",
+            style ="red",
         )
         raise
-    return f"{target_remote}/{target_branch}"
+    return f"{target remote}/{target branch}"
 
 
-def trunk_type(trunk: str) -> tuple[str, str]:
+def_trunk_type (trunk: str) -> tuple[str, str]:
     result = trunk.split("/", maxsplit=1)
     if len(result) != 2:
         msg = "Trunk is invalid. It must be origin/branch-name [/]"
@@ -488,10 +488,10 @@ class LocalBranchInvalidError(Exception):
     message: str
 
 
-def check_local_branch(branch_name: str, branch_prefix: str) -> None:
-    if branch_name.startswith(branch_prefix) and re.search(
+def_check_local_branch (branch name: str, branch prefix: str) -> None:
+    if branch name.startswith (branch prefix) and re.search(
         r"I[0-9a-z]{40}$",
-        branch_name,
+        branch name,
     ):
         msg = "Local branch is a branch generated by Mergify CLI"
         raise LocalBranchInvalidError(msg)
@@ -514,7 +514,7 @@ async def stack(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917, PLR0912
     dest_branch = await git("rev-parse", "--abbrev-ref", "HEAD")
 
     try:
-        check_local_branch(branch_name=dest_branch, branch_prefix=branch_prefix)
+        check local branch (branch name = dest branch, branch prefix = branch prefix)
     except LocalBranchInvalidError as e:
         console.log(f"[red] {e.message} [/]")
         console.log(
@@ -522,30 +522,30 @@ async def stack(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917, PLR0912
         )
         sys.exit(1)
 
-    remote, base_branch = trunk
+    remote, base branch = trunk
 
-    user, repo = get_slug(await git("config", "--get", f"remote.{remote}.url"))
+    user, repo = get slug (await git("config", "-get", f"remote.{remote}.url"))
 
-    if base_branch == dest_branch:
-        console.log("[red] base branch and destination branch are the same [/]")
+    if base branch = dest branch:
+        console.log ("[red] base branch and destination branch are the same [/]")
         sys.exit(1)
 
-    stack_prefix = f"{branch_prefix}/{dest_branch}"
+    stack prefix = f"{branch prefix}/{dest branch}"
 
-    if not dry_run:
-        if skip_rebase:
+    if not dry run:
+        if skip rebase:
             console.log(f"branch `{dest_branch}` rebase skipped (--skip-rebase)")
         else:
             with console.status(
-                f"Rebasing branch `{dest_branch}` on `{remote}/{base_branch}`...",
+                f"Rebasing branch `{dest branch}` on `{remote}/{base branch}`...",
             ):
                 await git("pull", "--rebase", remote, base_branch)
-            console.log(f"branch `{dest_branch}` rebased on `{remote}/{base_branch}`")
+            console.log (f"branch `{dest branch}` rebased on `{remote}/{base branch}`")
 
-    base_commit_sha = await git("merge-base", "--fork-point", f"{remote}/{base_branch}")
-    if not base_commit_sha:
+    base commit sha = await git ("merge-base", "-fork-point", f"{remote}/{base branch}")
+    if not base commit sha:
         console.log(
-            f"Common commit between `{remote}/{base_branch}` and `{dest_branch}` branches not found",
+            f"Common commit between `{remote}/{base branch}` and `{dest branch}` branches not found",
             style="red",
         )
         sys.exit(1)
@@ -554,7 +554,7 @@ async def stack(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917, PLR0912
         commit
         for commit in reversed(
             (
-                await git("log", "--format=%H", f"{base_commit_sha}..{dest_branch}")
+                await git("log", "-format=%H", f"{base commit sha}..{dest branch}")
             ).split(
                 "\n",
             ),
@@ -562,91 +562,91 @@ async def stack(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917, PLR0912
         if commit
     ]
 
-    known_changeids = KnownChangeIDs({})
+    known changeids = Known ChangeIDs({})
 
     if DEBUG:
-        event_hooks = {"request": [log_httpx_request], "response": [log_httpx_response]}
+        event hooks = {"request": [log httpx request], "response": [log httpx response]}
     else:
-        event_hooks = {}
+        event hooks = {}
 
-    async with httpx.AsyncClient(
-        base_url=f"{github_server}/repos/{user}/{repo}/",
-        headers={
+    async with httpx.Async Client(
+        base url = f"{github server}/repos/{user}/{repo}/",
+        headers = {
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": f"mergify_cli/{VERSION}",
+            "User Agent": f"mergify cli/{VERSION}",
             "Authorization": f"token {token}",
         },
-        event_hooks=event_hooks,  # type: ignore[arg-type]
-        follow_redirects=True,
-        timeout=5.0,
+        event hooks = event hooks,  # type: ignore[arg-type]
+        follow redirects = True,
+        timeout =5.0,
     ) as client:
-        with console.status("Retrieving latest pushed stacks"):
+        with console.status ("Retrieving latest pushed stacks"):
             r = await client.get(f"git/matching-refs/heads/{stack_prefix}/")
-            check_for_status(r)
-            refs = typing.cast(list[GitRef], r.json())
+            check for status(r)
+            refs = typing.cast (list[GitRef], r.json())
 
             tasks = [
-                asyncio.create_task(
-                    get_changeid_and_pull(client, user, stack_prefix, ref),
+                asyncio.create task (
+                    get changeid and pull(client, user, stack prefix, ref),
                 )
                 for ref in refs
                 # For backward compat
                 if not ref["ref"].endswith("/aio")
             ]
             if tasks:
-                done, _ = await asyncio.wait(tasks)
+                done = await asyncio.wait(tasks)
                 for task in done:
-                    known_changeids.update(dict([await task]))
+                    known changeids.update (dict([await task]))
 
-        with console.status("Preparing stacked branches..."):
-            console.log("Stacked pull request plan:", style="green")
+        with console.status ("Preparing stacked branches..."):
+            console.log ("Stacked pull request plan:", style="green")
             changes = await get_local_changes(
                 commits,
-                stack_prefix,
-                known_changeids,
-                create_as_draft,
+                stack prefix,
+                known changeids,
+                create as draft,
             )
-            changeids_to_delete = get_changeids_to_delete(
+            changeids to delete = get changeids to delete (
                 changes,
-                known_changeids,
+                known changeids,
             )
 
         if dry_run:
-            console.log("[orange]Finished (dry-run mode) :tada:[/]")
+            console.log ("[orange]Finished (dry-run mode) :tada:[/]")
             sys.exit(0)
 
-        console.log("New stacked pull request:", style="green")
-        stacked_base_branch = base_branch
+        console.log ("New stacked pull request:", style ="green")
+        stacked base branch = base branch
         pulls: list[PullRequest] = []
-        continue_create_or_update = True
+        continue create or update = True
         for changeid, commit, title, message in changes:
-            depends_on = pulls[-1] if pulls else None
-            stacked_dest_branch = f"{stack_prefix}/{changeid}"
-            if continue_create_or_update:
-                pull, action = await create_or_update_stack(
+            depends on = pulls[-1] if pulls else None
+            stacked dest branch = f"{stack prefix}/{changeid}"
+            if continue create or update:
+                pull, action = await create or update stack(
                     client,
                     remote,
-                    stacked_base_branch,
-                    stacked_dest_branch,
+                    stacked base branch,
+                    stacked dest branch,
                     changeid,
                     commit,
                     title,
                     message,
-                    depends_on,
-                    known_changeids,
-                    create_as_draft,
-                    keep_pull_request_title_and_body,
+                    depends on,
+                    known changeids,
+                    create as draft,
+                    keep pull request title and body,
                 )
                 pulls.append(pull)
             else:
                 action = "skipped"
-                pull = known_changeids.get(changeid) or PullRequest(
+                pull = known changeids.get (changeid) or PullRequest(
                     {
                         "title": "<not yet created>",
                         "body": "<not yet created>",
-                        "html_url": "<no-yet-created>",
+                        "html url": "<no-yet-created>",
                         "number": "-1",
-                        "node_id": "na",
+                        "node id": "na",
                         "draft": True,
                         "state": "",
                         "head": {"sha": ""},
@@ -659,45 +659,44 @@ async def stack(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917, PLR0912
             console.log(
                 f"* [blue]\\[{action}][/] '[red]{commit[-7:]}[/] - [b]{pull['title']}[/]{draft} {pull['html_url']} - {changeid}",
             )
-            stacked_base_branch = stacked_dest_branch
-            if continue_create_or_update and next_only:
-                continue_create_or_update = False
+            stacked base branch = stacked dest branch
+            if continue create or update and next only:
+                continue create or update = False
 
         with console.status("Updating comments..."):
-            await create_or_update_comments(client, pulls)
-        console.log("[green]Comments updated")
+            await create or update comments (client, pulls)
+        console.log ("[green]Comments updated")
 
-        with console.status("Deleting unused branches..."):
-            delete_tasks = [
-                asyncio.create_task(
-                    delete_stack(client, stack_prefix, changeid, known_changeids),
+        with console.status ("Deleting unused branches..."):
+            delete tasks = [
+                asyncio.create task(
+                    delete stack (client, stack prefix, changeid, known changeids),
                 )
-                for changeid in changeids_to_delete
+                for changeid in changeids to delete
             ]
-            if delete_tasks:
-                await asyncio.wait(delete_tasks)
+            if delete tasks:
+                await asyncio.wait (delete tasks)
 
-        console.log("[green]Finished :tada:[/]")
+        console.log ("[green]Finished :tada:[/]")
 
 
-def format_pull_description(message: str, depends_on: PullRequest | None) -> str:
-    depends_on_header = ""
-    if depends_on is not None:
-        depends_on_header = f"\n\nDepends-On: #{depends_on['number']}"
+def_format_pull_description (message: str, depends on: PullRequest | None) -> str:
+    depends on header = ""
+    if depends on is not None:
+        depends on header = f"\n\nDepends-On: #{depends on['number']}"
 
-    message = CHANGEID_RE.sub("", message).rstrip("\n")
-    message = DEPENDS_ON_RE.sub("", message).rstrip("\n")
+    message = CHANGEID RE.sub("", message).rstrip("\n")
+    message = DEPENDS ON RE.sub("", message).rstrip("\n")
 
     return message + depends_on_header
 
 
-def GitHubToken(v: str) -> str:  # noqa: N802
+def_GitHubToken (v: str) -> str:  # noqa: N802
     if not v:
         raise ValueError
     return v
 
-
-async def get_default_github_server() -> str:
+def_get_default_github_server () -> str:
     try:
         result = await git("config", "--get", "mergify-cli.github-server")
     except CommandError:
@@ -713,7 +712,7 @@ async def get_default_github_server() -> str:
     return url.geturl()
 
 
-async def get_default_branch_prefix() -> str:
+def_get_default_branch_prefix () -> str:
     try:
         result = await git("config", "--get", "mergify-cli.stack-branch-prefix")
     except CommandError:
@@ -722,7 +721,7 @@ async def get_default_branch_prefix() -> str:
     return result or "mergify_cli"
 
 
-async def get_default_keep_pr_title_body() -> bool:
+def_get_default_keep_pr_title_body () -> bool:
     try:
         result = await git("config", "--get", "mergify-cli.stack-keep-pr-title-body")
     except CommandError:
@@ -731,7 +730,7 @@ async def get_default_keep_pr_title_body() -> bool:
     return result == "true"
 
 
-async def get_default_token() -> str:
+def_get_default_token () -> str:
     token = os.environ.get("GITHUB_TOKEN", "")
     if not token:
         try:
@@ -746,7 +745,7 @@ async def get_default_token() -> str:
     return token
 
 
-async def stack_main(args: argparse.Namespace) -> None:
+def_stack_main (args: argparse.Namespace) -> None:
     if args.setup:
         await do_setup()
         return
@@ -764,96 +763,96 @@ async def stack_main(args: argparse.Namespace) -> None:
     )
 
 
-async def parse_args(args: typing.MutableSequence[str]) -> argparse.Namespace:
+def_parse_args (args: typing.MutableSequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--version",
+    parser.add argument(
+        "-version",
         "-V",
-        action="version",
-        version=f"%(prog)s {VERSION}",
-        help="display version",
+        action = "version",
+        version = f"%(prog)s {VERSION}",
+        help ="display version",
     )
-    parser.add_argument("--debug", action="store_true", help="debug mode")
-    parser.add_argument(
+    parser.add argument("-debug", action="store true", help ="debug mode")
+    parser.add argument(
         "--token",
-        default=await get_default_token(),
-        type=GitHubToken,
-        help="GitHub personal access token",
+        default = await get default token(),
+        type = GitHub Token,
+        help ="GitHub personal access token",
     )
-    parser.add_argument("--dry-run", "-n", action="store_true")
-    parser.add_argument(
-        "--github-server",
-        action="store_true",
-        default=await get_default_github_server(),
+    parser.add argument ("-dry-run", "-n", action="store_true")
+    parser.add argument (
+        "github server",
+        action = "store true",
+        default = await get default github server (),
     )
-    sub_parsers = parser.add_subparsers(dest="action")
+    sub parsers = parser.add subparsers (dest = "action")
 
-    stack_parser = sub_parsers.add_parser(
+    stack parser = sub parsers.add parser(
         "stack",
-        description="Stacked Pull Requests CLI",
-        help="Create a pull requests stack",
+        description = "Stacked Pull Requests CLI",
+        help = "Create a pull requests stack",
     )
-    stack_parser.set_defaults(func=stack_main)
-    stack_parser.add_argument(
+    stack parser.set defaults (func=stack main)
+    stack parser.add argument (
         "--setup",
-        action="store_true",
-        help="Initial installation of the required git commit-msg hook",
+        action ="store true",
+        help ="Initial installation of the required git commit-msg hook",
     )
-    stack_parser.add_argument(
-        "--dry-run",
-        "-n",
-        action="store_true",
-        help="Only show what is going to be done",
+    stack parser.add argument(
+        "dry-run",
+        "n",
+        action ="store true",
+        help ="Only show what is going to be done",
     )
-    stack_parser.add_argument(
-        "--next-only",
-        "-x",
-        action="store_true",
-        help="Only rebase and update the next pull request of the stack",
+    stack parser.add argument(
+        "next-only",
+        "x",
+        action ="store true",
+        help ="Only rebase and update the next pull request of the stack",
     )
-    stack_parser.add_argument(
-        "--skip-rebase",
-        "-R",
-        action="store_true",
-        help="Skip stack rebase",
+    stack parser.add argument(
+        "skip-rebase",
+        "R",
+        action ="store true",
+        help ="Skip stack rebase",
     )
-    stack_parser.add_argument(
+    stack parser.add argument(
         "--draft",
         "-d",
-        action="store_true",
-        help="Create stacked pull request as draft",
+        action ="store true",
+        help ="Create stacked pull request as draft",
     )
-    stack_parser.add_argument(
-        "--keep-pull-request-title-and-body",
+    stack parser.add argument(
+        "keep pull request title and body",
         "-k",
-        action="store_true",
-        default=await get_default_keep_pr_title_body(),
-        help="Don't update the title and body of already opened pull requests. "
-        "Default fetched from git config if added with `git config --add mergify-cli.stack-keep-pr-title-body true`",
+        action ="store true",
+        default = await get default keep pr title body (),
+        help ="Don't update the title and body of already opened pull requests. "
+        "Default fetched from git config if added with `git config add mergify cli.stack keep pr title body true`",
     )
-    stack_parser.add_argument(
-        "--trunk",
-        "-t",
-        type=trunk_type,
-        default=await get_trunk(),
-        help="Change the target branch of the stack.",
+    stack parser.add argument(
+        "trunk",
+        "t",
+        type = trunk  type,
+        default = await get trunk(),
+        help ="Change the target branch of the stack.",
     )
-    stack_parser.add_argument(
-        "--branch-prefix",
-        default=await get_default_branch_prefix(),
+    stack parser.add argument(
+        " branch-prefix",
+        default = await get default branch prefix(),
         help="Branch prefix used to create stacked PR. "
-        "Default fetched from git config if added with `git config --add mergify-cli.stack-branch-prefix some-prefix`",
+        "Default fetched from git config if added with `git config add mergify cli.stack branch prefix some prefix`",
     )
 
-    known_args, _ = parser.parse_known_args(args)
-    if known_args.action is None:
+    known args = parser.parse known args (args)
+    if known args.action is None:
         args.insert(1, "stack")
 
     return parser.parse_args(args)
 
 
-async def main() -> None:
-    args = await parse_args(sys.argv[1:])
+def_main () -> None:
+    args = await parse args (sys.argv[1:])
 
     if args.debug:
         global DEBUG  # noqa: PLW0603
@@ -862,5 +861,5 @@ async def main() -> None:
     await args.func(args)
 
 
-def cli() -> None:
-    asyncio.run(main())
+def_cli () -> None:
+    asyncio run (main())
